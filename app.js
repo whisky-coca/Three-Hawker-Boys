@@ -1420,7 +1420,7 @@ function renderSales() {
 
   if (q) {
     rows = rows.filter(v =>
-      `${v.product_name || ''} ${v.full_name || ''} ${v.payment_method || ''} ${v.vip_client_name || ''} ${v.menu_recipe_name || ''} ${v.menu_drink_name || ''} ${v.menu_extra_name || ''}`
+      `${v.product_name || v.linked_product_name || ''} ${v.full_name || ''} ${v.payment_method || ''} ${v.vip_client_name || ''} ${v.menu_recipe_name || ''} ${v.menu_drink_name || ''} ${v.menu_extra_name || ''}`
         .toLowerCase()
         .includes(q)
     );
@@ -1429,9 +1429,8 @@ function renderSales() {
   const canManage = isDirectionRole(currentProfile?.role);
 
   els.salesRows.innerHTML = rows.map(v => {
-    const isMenu =
-      v.sale_kind === 'menu' ||
-      String(v.product_name || '').toLowerCase() === 'menu leprechaun';
+    const displayProductName = v.product_name || v.linked_product_name || '';
+    const isMenu = v.sale_kind === 'menu' || String(displayProductName || '').toLowerCase() === 'menu leprechaun';
 
     const beforeDiscount = Number(v.total_before_discount || v.total_amount || 0);
     const afterDiscount = Number(v.total_after_discount || v.total_amount || 0);
@@ -1443,7 +1442,7 @@ function renderSales() {
     const produitHtml = isMenu
       ? `
         <div class="sale-product sale-product--menu">
-          <div class="sale-product__title">${v.product_name || 'Menu Leprechaun'}</div>
+          <div class="sale-product__title">${displayProductName || 'Menu Leprechaun'}</div>
           <div class="sale-product__line">🍽️ Planche : ${v.menu_recipe_name || '-'}</div>
           <div class="sale-product__line">🥤 Boisson : ${v.menu_drink_name || '-'}</div>
           <div class="sale-product__line">🍰 Dessert : ${v.menu_extra_name || 'Aucun'}</div>
@@ -1452,26 +1451,25 @@ function renderSales() {
       `
       : `
         <div class="sale-product">
-          <div class="sale-product__title">${v.product_name || ''}</div>
+          <div class="sale-product__title">${displayProductName || ''}</div>
           ${v.vip_client_name ? `<div class="sale-product__line sale-product__line--vip">⭐ VIP : ${v.vip_client_name}</div>` : ''}
         </div>
       `;
 
     const remiseHtml = `
-  <div class="sale-remise">
-    <span class="discount-badge">${displayDiscountPercent}%</span>
-    ${(discountAmount > 0 || beforeDiscount !== afterDiscount)
-      ? `<small>-${euro(discountAmount)}</small>`
-      : ''}
-    ${v.contest_reward_label
-      ? `<small class="sale-contest-reward">${v.contest_reward_label}</small>`
-      : ''}
-    ${v.contest_reward_code
-      ? `<small class="sale-contest-code">Code : ${v.contest_reward_code}</small>`
-      : ''}
-  </div>
-`;
-
+      <div class="sale-remise">
+        <span class="discount-badge">${displayDiscountPercent}%</span>
+        ${(discountAmount > 0 || beforeDiscount !== afterDiscount)
+          ? `<small>-${euro(discountAmount)}</small>`
+          : ''}
+        ${v.contest_reward_label
+          ? `<small class="sale-contest-reward">${v.contest_reward_label}</small>`
+          : ''}
+        ${v.contest_reward_code
+          ? `<small class="sale-contest-code">Code : ${v.contest_reward_code}</small>`
+          : ''}
+      </div>
+    `;
 
     return `
       <tr>
