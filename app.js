@@ -3211,7 +3211,8 @@ async function validateCart(payment) {
 
       contest_reward_code: activeContestReward?.code || null,
       contest_reward_type: activeContestReward?.reward_type || null,
-      contest_reward_value: activeContestReward?.reward_value || null
+      contest_reward_value: activeContestReward?.reward_value || null,
+      contest_reward_label: activeContestReward?.message || null,
     };
 
     const { data: insertedSale, error } = await sb
