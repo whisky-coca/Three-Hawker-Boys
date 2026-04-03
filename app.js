@@ -126,10 +126,10 @@ const canOfferCart = r => ['directeur', 'codirecteur'].includes(r);
 const isReadOnlyRole = r => r === 'lecture_seule';
 const monthKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 const vipDiscountByLevel = level => {
-  if (level === 'Gold') return 20;
+  if (level === 'Or') return 20;
   if (level === 'Argent') return 10;
   if (level === 'Bronze') return 5;
-  if (level === 'VIP') return 0;
+  if (level === 'Émeraude') return 0;
   return 0;
 };
 
@@ -198,10 +198,10 @@ function updateVipFormDetails() {
   const discountInput = document.getElementById('vipDiscountPercent');
 
   const config = {
-    VIP: { discount_percent: 0, weekly_price: 10000 },
+    Émeraude: { discount_percent: 0, weekly_price: 10000 },
     Bronze: { discount_percent: 5, weekly_price: 2000 },
     Argent: { discount_percent: 10, weekly_price: 4000 },
-    Gold: { discount_percent: 20, weekly_price: 6000 }
+    Or: { discount_percent: 20, weekly_price: 6000 }
   };
 
   const selected = config[level] || config.VIP;
@@ -214,10 +214,10 @@ updateVipFormDetails();
 
 function getVipConfig(level) {
   const map = {
-    VIP: { discount_percent: 0, weekly_price: 10000 },
+    Émeraude: { discount_percent: 0, weekly_price: 10000 },
     Bronze: { discount_percent: 5, weekly_price: 2000 },
     Argent: { discount_percent: 10, weekly_price: 4000 },
-    Gold: { discount_percent: 20, weekly_price: 6000 }
+    Or: { discount_percent: 20, weekly_price: 6000 }
   };
   return map[level] || map.VIP;
 }
@@ -2095,7 +2095,7 @@ async function editVipClient(id) {
   const phone = prompt('Téléphone', item.phone || '');
   if (phone === null) return;
 
-  const level = prompt('Niveau VIP (VIP, Bronze, Argent, Gold)', item.level || 'VIP');
+  const level = prompt('Niveau VIP (Émeraude, Bronze, Argent, Or)', item.level || 'VIP');
   if (level === null) return;
 
   const normalizedLevel = String(level).trim();
@@ -2147,22 +2147,8 @@ window.toggleVipClient = toggleVipClient;
 
 async function syncVipToDiscord() {
   try {
-    const payload = {
-      event: 'vip_list_update',
-      clients: (cache.vipClients || []).map(v => ({
-        full_name: v.full_name || '',
-        phone: v.phone || '',
-        level: v.level || 'VIP',
-        discount_percent: Number(v.discount_percent || 0),
-        weekly_price: Number(v.weekly_price || 0),
-        start_date: v.start_date || '',
-        end_date: v.end_date || '',
-        is_active: v.is_active === true
-      }))
-    };
-
     const { data, error } = await sb.functions.invoke('vip-discord-sync', {
-      body: payload
+      body: { source: 'vip_update' }
     });
 
     console.log('VIP DISCORD DATA =', data);
