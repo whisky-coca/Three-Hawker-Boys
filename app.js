@@ -2809,7 +2809,7 @@ function renderCart() {
 
           <div class="caisse-line-tools">
             ${canLineDiscount ? `
-              <select onchange="setCartItemDiscount('${item.id}', this.value)">
+              <select class="cart-line-discount" onchange="setCartItemDiscount('${item.id}', this.value)">
                 <option value="0" ${lineDiscountPercent === 0 ? 'selected' : ''}>Remise 0%</option>
                 <option value="5" ${lineDiscountPercent === 5 ? 'selected' : ''}>Remise 5%</option>
                 <option value="10" ${lineDiscountPercent === 10 ? 'selected' : ''}>Remise 10%</option>
