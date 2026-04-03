@@ -3524,6 +3524,7 @@ function renderRecipes() {
       <td>${Number(r.margin_percent || 0).toFixed(1)}%</td>
       <td>${euro(r.suggested_price || 0)}</td>
       <td>
+        <button class="secondary" onclick="editRecipeIngredients('${r.id}')">Éditer ingrédients</button>
         <button class="secondary" onclick="produceRecipe('${r.id}')">Fabriquer</button>
         <button class="secondary" onclick="applySuggestedRecipePrice('${r.id}')">Appliquer prix conseillé</button>
         <button class="secondary" onclick="deleteRecipe('${r.id}')">Supprimer</button>
@@ -3538,7 +3539,7 @@ function renderRecipeItems() {
   const rows = recipeId ? cache.recipeItems.filter(i => String(i.recipe_id) === String(recipeId)) : [];
 
   els.recipeItemRows.innerHTML = rows.map(i => {
-    const stockItem = (cache.stockItems || []).find(s => String(s.id) === String(i.stock_item_id));
+    const stockItem = (cache.stockItems || cache.stock || []).find(s => String(s.id) === String(i.stock_item_id));
     const unit = stockItem?.unit || '-';
 
     return `
@@ -3548,11 +3549,85 @@ function renderRecipeItems() {
         <td>${unit}</td>
         <td>${euro(i.unit_cost || 0)}</td>
         <td>${euro(i.line_cost || 0)}</td>
-        <td><button class="secondary" onclick="deleteRecipeItem('${i.id}', '${i.recipe_id}')">Supprimer</button></td>
+        <td>
+          <button class="secondary" onclick="editRecipeItem('${i.id}', '${i.recipe_id}')">Modifier</button>
+          <button class="secondary" onclick="deleteRecipeItem('${i.id}', '${i.recipe_id}')">Supprimer</button>
+        </td>
       </tr>
     `;
   }).join('') || '<tr><td colspan="6">Aucun ingrédient</td></tr>';
 }
+
+function editRecipeIngredients(recipeId) {
+  const recipe = (cache.recipes || []).find(r => String(r.id) === String(recipeId));
+  if (!recipe) return toast('Recette introuvable.');
+
+  const form = document.getElementById('recipeForm');
+  if (form) form.dataset.recipeId = recipe.id;
+
+  const nameInput = document.getElementById('recipeName');
+  const categoryInput = document.getElementById('recipeCategory');
+  const salePriceInput = document.getElementById('recipeSalePrice');
+  const outputUnitInput = document.getElementById('recipeOutputUnit');
+  const initialStockQtyInput = document.getElementById('recipeInitialStockQty');
+  const suggestedInput = document.getElementById('recipeSuggestedPreview');
+
+  if (nameInput) nameInput.value = recipe.name || '';
+  if (categoryInput) categoryInput.value = recipe.category || '';
+  if (salePriceInput) salePriceInput.value = Number(recipe.sale_price || 0);
+  if (outputUnitInput) outputUnitInput.value = recipe.output_unit || 'piece';
+  if (initialStockQtyInput) initialStockQtyInput.value = 0;
+  if (suggestedInput) suggestedInput.value = euro(recipe.suggested_price || 0);
+
+  const detailSelect = document.getElementById('recipeDetailSelect');
+  if (detailSelect) detailSelect.value = recipe.id;
+
+  renderRecipeItems();
+  toast(`Édition des ingrédients : ${recipe.name}`);
+}
+window.editRecipeIngredients = editRecipeIngredients;
+
+async function editRecipeItem(id, recipeId) {
+  const item = (cache.recipeItems || []).find(i => String(i.id) === String(id));
+  if (!item) return toast('Ingrédient introuvable.');
+
+  const qty = Number(prompt('Nouvelle quantité ?', String(item.quantity || 0)));
+  if (!Number.isFinite(qty) || qty <= 0) return;
+
+  const lineCost = Number(item.unit_cost || 0) * qty;
+
+  const { error } = await sb
+    .from('recipe_items')
+    .update({
+      quantity: qty,
+      line_cost: lineCost
+    })
+    .eq('id', id);
+
+  if (error) return toast(error.message);
+
+  await recomputeRecipeCost(recipeId);
+  await refreshAll();
+  renderRecipeItems();
+  toast('Ingrédient mis à jour ✅');
+}
+window.editRecipeItem = editRecipeItem;
+
+function clearRecipeEditor() {
+  const form = document.getElementById('recipeForm');
+  if (form) {
+    form.reset();
+    delete form.dataset.recipeId;
+  }
+
+  const suggestedInput = document.getElementById('recipeSuggestedPreview');
+  if (suggestedInput) suggestedInput.value = '';
+
+  renderRecipeItems();
+  toast('Mode nouvelle recette ✅');
+}
+window.clearRecipeEditor = clearRecipeEditor;
+
 function applyTargetMargin(recipeId, marginPercent) {
   const recipe = cache.recipes.find(r => String(r.id) === String(recipeId));
   if (!recipe) return;
