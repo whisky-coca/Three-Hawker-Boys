@@ -964,6 +964,7 @@ async function refreshAll() {
   fillRecipeCategorySelect();
   fillRecipeSelects();
   fillMenuLeprechaunSelects();
+  fillRecipeIngredientSelect();
   renderRecipes();
   renderRecipeItems();
 
@@ -3363,6 +3364,127 @@ function updateRecipeIngredientCost() {
   if (lineCostEl) lineCostEl.value = lineCost.toFixed(2);
 }
 
+function fillRecipeIngredientSelect() {
+  const select = document.getElementById('recipeDetailSelect');
+  if (!select) return;
+
+  const items = (cache.stockItems || cache.stock || []).filter(item => !!item?.id);
+
+  select.innerHTML = items.length
+    ? items.map(item => `
+        <option value="${item.id}">
+          ${item.name || '-'} (${item.unit || '-'}) - ${euro(item.unit_cost || 0)}
+        </option>
+      `).join('')
+    : `<option value="">Aucun ingrédient stock</option>`;
+}
+
+async function recomputeRecipeCost(recipeId) {
+  const { data: items, error: itemsError } = await sb
+    .from('recipe_items')
+    .select('*')
+    .eq('recipe_id', recipeId);
+
+  if (itemsError) return toast(itemsError.message);
+
+  const totalCost = (items || []).reduce((sum, item) => {
+    return sum + Number(item.line_cost || 0);
+  }, 0);
+
+  const recipe = (cache.recipes || []).find(r => String(r.id) === String(recipeId));
+  const salePrice = Number(recipe?.sale_price || 0);
+  const marginAmount = Math.max(0, salePrice - totalCost);
+  const marginPercent = totalCost > 0 ? (marginAmount / totalCost) * 100 : 0;
+  const suggestedPrice = totalCost * 3;
+
+  const { error: updateError } = await sb
+    .from('recipes')
+    .update({
+      total_cost: totalCost,
+      margin_amount: marginAmount,
+      margin_percent: marginPercent,
+      suggested_price: suggestedPrice
+    })
+    .eq('id', recipeId);
+
+  if (updateError) return toast(updateError.message);
+}
+
+async function addRecipeItem() {
+  const recipeId = document.getElementById('recipeForm')?.dataset.recipeId || '';
+  const stockItemId = document.getElementById('recipeDetailSelect')?.value || '';
+  const qty = Number(document.getElementById('recipeIngredientQty')?.value || 0);
+
+  if (!recipeId) return toast("Crée d'abord la recette.");
+  if (!stockItemId) return toast("Choisis un ingrédient.");
+  if (!qty || qty <= 0) return toast("Quantité invalide.");
+
+  const stockItem = (cache.stockItems || cache.stock || []).find(i => String(i.id) === String(stockItemId));
+  if (!stockItem) return toast("Ingrédient introuvable.");
+
+  const unitCost = Number(stockItem.unit_cost || 0);
+  const lineCost = unitCost * qty;
+
+  const { error } = await sb
+    .from('recipe_items')
+    .insert({
+      recipe_id: recipeId,
+      stock_item_id: stockItem.id,
+      ingredient_name: stockItem.name,
+      quantity: qty,
+      unit_cost: unitCost,
+      line_cost: lineCost
+    });
+
+  if (error) return toast(error.message);
+
+  const qtyInput = document.getElementById('recipeIngredientQty');
+  if (qtyInput) qtyInput.value = '';
+
+  await recomputeRecipeCost(recipeId);
+  await refreshAll();
+  renderRecipeItems();
+}
+window.addRecipeItem = addRecipeItem;
+
+async function applySuggestedRecipePrice(recipeId) {
+  const recipe = (cache.recipes || []).find(r => String(r.id) === String(recipeId));
+  if (!recipe) return;
+
+  const suggested = Number(recipe.suggested_price || 0);
+  if (!suggested) return toast('Aucun prix conseillé disponible.');
+
+  const { error: recipeError } = await sb
+    .from('recipes')
+    .update({
+      sale_price: suggested,
+      margin_amount: suggested - Number(recipe.total_cost || 0),
+      margin_percent: Number(recipe.total_cost || 0) > 0
+        ? ((suggested - Number(recipe.total_cost || 0)) / Number(recipe.total_cost || 1)) * 100
+        : 0
+    })
+    .eq('id', recipeId);
+
+  if (recipeError) return toast(recipeError.message);
+
+  if (recipe.product_id) {
+    const { error: productError } = await sb
+      .from('products')
+      .update({
+        price_bar: suggested,
+        price: suggested
+      })
+      .eq('id', recipe.product_id);
+
+    if (productError) return toast(productError.message);
+  }
+
+  await refreshAll();
+  toast('Prix conseillé appliqué ✅');
+}
+
+window.applySuggestedRecipePrice = applySuggestedRecipePrice;
+
 function fillRecipeCategorySelect() {
   const select = document.getElementById('recipeCategory');
   if (!select) return;
@@ -3412,19 +3534,24 @@ function renderRecipes() {
 function renderRecipeItems() {
   if (!els.recipeItemRows) return;
 
-  const recipeId = document.getElementById('recipeDetailSelect')?.value || '';
+  const recipeId = document.getElementById('recipeForm')?.dataset.recipeId || '';
   const rows = recipeId ? cache.recipeItems.filter(i => String(i.recipe_id) === String(recipeId)) : [];
 
-  els.recipeItemRows.innerHTML = rows.map(i => `
-    <tr>
-      <td>${i.ingredient_name}</td>
-      <td>${Number(i.quantity || 0).toFixed(2)}</td>
-      <td>-</td>
-      <td>${euro(i.unit_cost || 0)}</td>
-      <td>${euro(i.line_cost || 0)}</td>
-      <td><button class="secondary" onclick="deleteRecipeItem('${i.id}', '${i.recipe_id}')">Supprimer</button></td>
-    </tr>
-  `).join('') || '<tr><td colspan="6">Aucun ingrédient</td></tr>';
+  els.recipeItemRows.innerHTML = rows.map(i => {
+    const stockItem = (cache.stockItems || []).find(s => String(s.id) === String(i.stock_item_id));
+    const unit = stockItem?.unit || '-';
+
+    return `
+      <tr>
+        <td>${i.ingredient_name}</td>
+        <td>${Number(i.quantity || 0).toFixed(2)}</td>
+        <td>${unit}</td>
+        <td>${euro(i.unit_cost || 0)}</td>
+        <td>${euro(i.line_cost || 0)}</td>
+        <td><button class="secondary" onclick="deleteRecipeItem('${i.id}', '${i.recipe_id}')">Supprimer</button></td>
+      </tr>
+    `;
+  }).join('') || '<tr><td colspan="6">Aucun ingrédient</td></tr>';
 }
 function applyTargetMargin(recipeId, marginPercent) {
   const recipe = cache.recipes.find(r => String(r.id) === String(recipeId));
@@ -3534,6 +3661,7 @@ async function deleteRecipeItem(id, recipeId) {
   if (error) return toast(error.message);
   await recomputeRecipeCost(recipeId);
   await refreshAll();
+  renderRecipeItems();
 }
 window.deleteRecipeItem = deleteRecipeItem;
 
@@ -3541,13 +3669,19 @@ document.getElementById('recipeForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   if (!isDirectionRole(currentProfile?.role)) return toast('Accès refusé.');
 
+  const form = e.target;
+  const recipeIdAlreadyCreated = form.dataset.recipeId || '';
+
+  if (recipeIdAlreadyCreated) {
+    return toast("La recette est déjà créée. Ajoute maintenant les ingrédients.");
+  }
+
   const name = document.getElementById('recipeName').value.trim();
   const category = String(document.getElementById('recipeCategory').value || '').trim();
   const sale_price = Number(document.getElementById('recipeSalePrice').value || 0);
   const outputUnit = document.getElementById('recipeOutputUnit')?.value || 'piece';
   const initialStockQty = Number(document.getElementById('recipeInitialStockQty')?.value || 0);
 
-  // 1) créer la recette
   const { data: recipe, error: recipeError } = await sb.from('recipes').insert({
     name,
     category,
@@ -3561,7 +3695,6 @@ document.getElementById('recipeForm')?.addEventListener('submit', async e => {
 
   if (recipeError) return toast(recipeError.message);
 
-  // 2) créer le produit dans la carte du restaurant
   const { data: product, error: productError } = await sb.from('products').insert({
     name,
     category,
@@ -3574,7 +3707,6 @@ document.getElementById('recipeForm')?.addEventListener('submit', async e => {
 
   if (productError) return toast(productError.message);
 
-  // 3) créer l'article de stock lié à la recette
   const { data: stockItem, error: stockError } = await sb.from('stock_items').insert({
     name,
     category,
@@ -3589,7 +3721,6 @@ document.getElementById('recipeForm')?.addEventListener('submit', async e => {
 
   if (stockError) return toast(stockError.message);
 
-  // 4) stock initial si besoin
   if (initialStockQty > 0) {
     const { error: movementError } = await sb.from('stock_movements').insert({
       stock_item_id: stockItem.id,
@@ -3603,7 +3734,6 @@ document.getElementById('recipeForm')?.addEventListener('submit', async e => {
     if (movementError) return toast(movementError.message);
   }
 
-  // 5) lier recette -> produit + stock
   const { error: recipeLinkError } = await sb.from('recipes').update({
     product_id: product.id,
     stock_item_id: stockItem.id
@@ -3611,16 +3741,20 @@ document.getElementById('recipeForm')?.addEventListener('submit', async e => {
 
   if (recipeLinkError) return toast(recipeLinkError.message);
 
-  // 6) lier produit -> stock
   const { error: productLinkError } = await sb.from('products').update({
     stock_item_id: stockItem.id
   }).eq('id', product.id);
 
   if (productLinkError) return toast(productLinkError.message);
 
-  e.target.reset();
+  form.dataset.recipeId = recipe.id;
+  document.getElementById('recipeSuggestedPreview').value = euro(0);
+
   await refreshAll();
-  toast('Recette créée dans Recettes, Stock et Carte du Restaurant.');
+  fillRecipeIngredientSelect();
+  renderRecipeItems();
+
+  toast("Recette créée ✅ Ajoute maintenant les ingrédients.");
 });
 
 document.getElementById('recipeItemForm')?.addEventListener('submit', async e => {
