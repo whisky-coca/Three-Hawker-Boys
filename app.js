@@ -193,18 +193,18 @@ function fillMenuLeprechaunSelects() {
 }
 
 function updateVipFormDetails() {
-  const level = document.getElementById('vipLevel')?.value || 'VIP';
+  const level = document.getElementById('vipLevel')?.value || 'Émeraude';
   const weeklyInput = document.getElementById('vipWeeklyPrice');
   const discountInput = document.getElementById('vipDiscountPercent');
 
   const config = {
-    Émeraude: { discount_percent: 0, weekly_price: 10000 },
-    Bronze: { discount_percent: 5, weekly_price: 2000 },
-    Argent: { discount_percent: 10, weekly_price: 4000 },
-    Or: { discount_percent: 20, weekly_price: 6000 }
+    'Émeraude': { discount_percent: 0, weekly_price: 10000 },
+    'Bronze': { discount_percent: 5, weekly_price: 2000 },
+    'Argent': { discount_percent: 10, weekly_price: 4000 },
+    'Or': { discount_percent: 20, weekly_price: 6000 }
   };
 
-  const selected = config[level] || config.VIP;
+  const selected = config[level] || config['Émeraude'];
 
   if (weeklyInput) weeklyInput.value = euro(selected.weekly_price);
   if (discountInput) discountInput.value = `${selected.discount_percent}%`;
@@ -214,12 +214,12 @@ updateVipFormDetails();
 
 function getVipConfig(level) {
   const map = {
-    Émeraude: { discount_percent: 0, weekly_price: 10000 },
-    Bronze: { discount_percent: 5, weekly_price: 2000 },
-    Argent: { discount_percent: 10, weekly_price: 4000 },
-    Or: { discount_percent: 20, weekly_price: 6000 }
+    'Émeraude': { discount_percent: 0, weekly_price: 10000 },
+    'Bronze': { discount_percent: 5, weekly_price: 2000 },
+    'Argent': { discount_percent: 10, weekly_price: 4000 },
+    'Or': { discount_percent: 20, weekly_price: 6000 }
   };
-  return map[level] || map.VIP;
+  return map[level] || map['Émeraude'];
 }
 
 function renderDashboardVipTables() {
@@ -2095,7 +2095,7 @@ async function editVipClient(id) {
   const phone = prompt('Téléphone', item.phone || '');
   if (phone === null) return;
 
-  const level = prompt('Niveau VIP (Émeraude, Bronze, Argent, Or)', item.level || 'VIP');
+  const level = prompt('Niveau VIP (Émeraude, Bronze, Argent, Or)', item.level || 'Émeraude');
   if (level === null) return;
 
   const normalizedLevel = String(level).trim();
