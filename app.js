@@ -2813,6 +2813,7 @@ function renderCart() {
                 <option value="0" ${lineDiscountPercent === 0 ? 'selected' : ''}>Remise 0%</option>
                 <option value="5" ${lineDiscountPercent === 5 ? 'selected' : ''}>Remise 5%</option>
                 <option value="10" ${lineDiscountPercent === 10 ? 'selected' : ''}>Remise 10%</option>
+                <option value="15" ${lineDiscountPercent === 10 ? 'selected' : ''}>Remise 15%</option>
                 <option value="20" ${lineDiscountPercent === 20 ? 'selected' : ''}>Remise 20%</option>
                 <option value="30" ${lineDiscountPercent === 30 ? 'selected' : ''}>Remise 30%</option>
                 <option value="40" ${lineDiscountPercent === 40 ? 'selected' : ''}>Remise 40%</option>
