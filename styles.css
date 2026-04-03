@@ -2138,3 +2138,13 @@ ol li{margin:8px 0}
 .company-payment-status.pending {
   color: #b7791f;
 }
+.sale-contest-reward {
+  color: #9c6b14;
+  font-weight: 700;
+  display: block;
+}
+
+.sale-contest-code {
+  color: #7a6b59;
+  display: block;
+}
