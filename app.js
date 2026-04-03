@@ -1458,13 +1458,20 @@ function renderSales() {
       `;
 
     const remiseHtml = `
-      <div class="sale-remise">
-        <span class="discount-badge">${displayDiscountPercent}%</span>
-        ${(discountAmount > 0 || beforeDiscount !== afterDiscount)
-          ? `<small>-${euro(discountAmount)}</small>`
-          : ''}
-      </div>
-    `;
+  <div class="sale-remise">
+    <span class="discount-badge">${displayDiscountPercent}%</span>
+    ${(discountAmount > 0 || beforeDiscount !== afterDiscount)
+      ? `<small>-${euro(discountAmount)}</small>`
+      : ''}
+    ${v.contest_reward_label
+      ? `<small class="sale-contest-reward">${v.contest_reward_label}</small>`
+      : ''}
+    ${v.contest_reward_code
+      ? `<small class="sale-contest-code">Code : ${v.contest_reward_code}</small>`
+      : ''}
+  </div>
+`;
+
 
     return `
       <tr>
