@@ -2060,3 +2060,81 @@ ol li{margin:8px 0}
   box-shadow: 0 0 18px rgba(212, 166, 60, 0.35);
   transform: translateX(4px);
 }
+.sales-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.sales-table th,
+.sales-table td {
+  vertical-align: top;
+}
+
+.sales-table tbody tr {
+  border-bottom: 1px solid rgba(180, 140, 90, 0.18);
+}
+
+.sales-table tbody td {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.sales-table td:nth-child(1) { width: 110px; }
+.sales-table td:nth-child(2) { width: 170px; }
+.sales-table td:nth-child(3) { width: 420px; }
+.sales-table td:nth-child(4) { width: 70px; text-align: center; }
+.sales-table td:nth-child(5) { width: 110px; text-align: center; }
+.sales-table td:nth-child(6) { width: 110px; text-align: center; }
+.sales-table td:nth-child(7) { width: 130px; text-align: center; }
+.sales-table td:nth-child(8) { width: 130px; text-align: center; }
+
+.sale-product {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.sale-product__title {
+  font-weight: 800;
+  color: #2e2418;
+}
+
+.sale-product__line {
+  color: #7a6b59;
+  font-size: 0.95rem;
+}
+
+.sale-product__line--vip {
+  color: #9c6b14;
+  font-weight: 700;
+}
+
+.sale-remise {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.sale-remise small {
+  color: #8e7a63;
+  font-weight: 700;
+}
+
+.company-payment-status {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.company-payment-status.paid {
+  color: #1f8b4c;
+}
+
+.company-payment-status.pending {
+  color: #b7791f;
+}
