@@ -1392,7 +1392,31 @@ function renderSales() {
   if (!els.salesRows) return;
 
   const q = document.getElementById('salesSearch')?.value?.trim().toLowerCase() || '';
-  let rows = cache.ventes || [];
+
+  const parseSaleTime = (sale) => {
+    const raw =
+      sale?.created_at ||
+      sale?.inserted_at ||
+      sale?.sold_at ||
+      sale?.sale_date ||
+      sale?.date ||
+      null;
+
+    if (!raw) return 0;
+
+    const t = new Date(raw).getTime();
+    return Number.isFinite(t) ? t : 0;
+  };
+
+  let rows = [...(cache.ventes || [])]
+    .sort((a, b) => {
+      const diff = parseSaleTime(b) - parseSaleTime(a);
+      if (diff !== 0) return diff;
+
+      const idA = String(a?.id || '');
+      const idB = String(b?.id || '');
+      return idB.localeCompare(idA);
+    });
 
   if (q) {
     rows = rows.filter(v =>
@@ -1405,33 +1429,41 @@ function renderSales() {
   const canManage = isDirectionRole(currentProfile?.role);
 
   els.salesRows.innerHTML = rows.map(v => {
-    const isMenu = v.sale_kind === 'menu' || String(v.product_name || '').toLowerCase() === 'menu leprechaun';
+    const isMenu =
+      v.sale_kind === 'menu' ||
+      String(v.product_name || '').toLowerCase() === 'menu leprechaun';
 
     const beforeDiscount = Number(v.total_before_discount || v.total_amount || 0);
     const afterDiscount = Number(v.total_after_discount || v.total_amount || 0);
     const discountAmount = Math.max(0, beforeDiscount - afterDiscount);
-    const displayDiscountPercent = beforeDiscount > 0 ? Math.round((discountAmount / beforeDiscount) * 100) : 0;
+    const displayDiscountPercent = beforeDiscount > 0
+      ? Math.round((discountAmount / beforeDiscount) * 100)
+      : 0;
 
     const produitHtml = isMenu
       ? `
-        <div><strong>${v.product_name || 'Menu Leprechaun'}</strong></div>
-        <div class="muted">🍽 Planche : ${v.menu_recipe_name || '-'}</div>
-        <div class="muted">🥃 Boisson : ${v.menu_drink_name || '-'}</div>
-        <div class="muted">🍰 Dessert : ${v.menu_extra_name || 'Aucun'}</div>
-        ${v.vip_client_name ? `<div class="muted">VIP : ${v.vip_client_name}</div>` : ''}
+        <div class="sale-product sale-product--menu">
+          <div class="sale-product__title">${v.product_name || 'Menu Leprechaun'}</div>
+          <div class="sale-product__line">🍽️ Planche : ${v.menu_recipe_name || '-'}</div>
+          <div class="sale-product__line">🥤 Boisson : ${v.menu_drink_name || '-'}</div>
+          <div class="sale-product__line">🍰 Dessert : ${v.menu_extra_name || 'Aucun'}</div>
+          ${v.vip_client_name ? `<div class="sale-product__line sale-product__line--vip">⭐ VIP : ${v.vip_client_name}</div>` : ''}
+        </div>
       `
       : `
-        <div>${v.product_name || ''}</div>
-        ${v.vip_client_name ? `<div class="muted">VIP : ${v.vip_client_name}</div>` : ''}
+        <div class="sale-product">
+          <div class="sale-product__title">${v.product_name || ''}</div>
+          ${v.vip_client_name ? `<div class="sale-product__line sale-product__line--vip">⭐ VIP : ${v.vip_client_name}</div>` : ''}
+        </div>
       `;
 
     const remiseHtml = `
-      <span class="tag ${displayDiscountPercent > 0 || discountAmount > 0 ? 'offert' : ''}">
-        ${displayDiscountPercent}%
-      </span>
-      ${(discountAmount > 0 || beforeDiscount !== afterDiscount)
-        ? `<div class="muted">-${euro(discountAmount)}</div>`
-        : ''}
+      <div class="sale-remise">
+        <span class="discount-badge">${displayDiscountPercent}%</span>
+        ${(discountAmount > 0 || beforeDiscount !== afterDiscount)
+          ? `<small>-${euro(discountAmount)}</small>`
+          : ''}
+      </div>
     `;
 
     return `
@@ -1443,17 +1475,29 @@ function renderSales() {
         <td>${remiseHtml}</td>
         <td>${euro(afterDiscount)}</td>
         <td>
-          <span class="tag ${v.payment_method === 'Offert' ? 'offert' : ''}">
-            ${v.payment_method === 'company' ? 'Contrat entreprise' : (v.payment_method || '')}
-          </span>
-          ${v.payment_method === 'company'
-            ? `<div class="muted">${v.payment_status === 'paye' ? '✅ Payé' : '⏳ Non payé'}</div>`
-            : ''}
+          ${
+            v.payment_method === 'company'
+              ? 'Contrat entreprise'
+              : (v.payment_method || '')
+          }
+          ${
+            v.payment_method === 'company'
+              ? `<div class="company-payment-status ${v.payment_status === 'paye' ? 'paid' : 'pending'}">
+                  ${v.payment_status === 'paye' ? '✅ Payé' : '⏳ Non payé'}
+                </div>`
+              : ''
+          }
         </td>
-        ${canManage ? `<td><button class="secondary" onclick="deleteSale('${v.id}')">Supprimer</button></td>` : ''}
+        <td>
+          ${
+            canManage
+              ? `<button class="action-btn danger" onclick="deleteSale('${v.id}')">Supprimer</button>`
+              : ''
+          }
+        </td>
       </tr>
     `;
-  }).join('') || `<tr><td colspan="${canManage ? 8 : 7}">Aucune vente</td></tr>`;
+  }).join('');
 }
 
 function renderPurchases() {
