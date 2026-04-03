@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Three Hawker Boys</title>
+  <link rel="stylesheet" href="./styles.css?v=5.3" />
+  <link rel="icon" href="/logo-three-hawker-boys.png" />
+
+  <script src="./config.js?v=1"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="./app.js?v=100"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand vertical">
+  <img src="/logo-three-hawker-boys.png" alt="logo" class="brand-logo" />
+  <div class="brand-text">
+    <h1>Three Hawker Boys</h1>
+    <p>Irish Pub Premium</p>
+  </div>
+</div>
+    <div class="burger" id="burgerBtn">☰</div>
+    <nav id="menu" class="menu hidden">
+
+         <button data-view="dashboard">🏠 Dashboard</button>
+
+          <button data-view="caisse">💳 Caisse</button>
+
+          <button data-view="expenses">💸 Dépenses</button>
+
+          <button data-view="achats">🚚 Grossiste</button>
+
+          <button data-view="stock">📦 Stock</button>
+
+          <button data-view="produits">🍽 Carte du Restaurant</button>
+
+          <button data-view="recettes"><span style="margin-right:8px;">📜</span> Recette</button>
+
+          <button data-view="vip">⭐ VIP</button>
+
+          <button data-view="contracts">🏢 Contrats</button>
+
+          <button data-view="gestion">⚙️ Gestion</button>
+
+          <button data-view="annuaire">📇 Annuaire</button>
+
+          <button data-view="profil">👤 Mon profil</button>
+
+    </nav>
+    <div class="sidebar-footer hidden" id="sidebarUserBox">
+      <div id="whoami"></div>
+      <button id="logoutBtn" class="secondary">Déconnexion</button>
+    </div>
+  </aside>
+  <main class="content">
+    <section id="loginView" class="card auth-card"><div class="hero-lock">🔐</div><h2>Connexion</h2><form id="loginForm" class="form-grid simple"><div><label>Nom d'utilisateur</label><input id="loginUsername" required /></div><div><label>Mot de passe</label><input id="loginPassword" type="password" required /></div><button type="submit">Se connecter</button></form></section>
+    <section id="mustChangeView" class="card auth-card hidden"><div class="hero-lock">🗝️</div><h2>Changer le mot de passe provisoire</h2><form id="changePasswordForm" class="form-grid simple"><div><label>Nouveau mot de passe</label><input id="newPassword" type="password" minlength="8" required /></div><div><label>Confirmation</label><input id="confirmPassword" type="password" minlength="8" required /></div><button type="submit">Valider</button></form></section>
+    <section id="appView" class="hidden">
+      <section id="dashboardView" class="view"><div class="page-head"><h2>📊 Dashboard</h2><p>Vue globale de ton activité</p></div><div class="stats-grid six"><div class="stat-card"><span>CA jour</span><strong id="caJour">$0.00</strong></div><div class="stat-card"><span>CA semaine</span><strong id="caSemaine">$0.00</strong></div><div class="stat-card"><span>CA mois</span><strong id="caMois">$0.00</strong></div><div class="stat-card warning"><span>Achats grossiste mois</span><strong id="grossisteMois">$0.00</strong></div><div class="stat-card warning"><span>Dépenses annexes mois</span><strong id="depensesMois">$0.00</strong></div><div class="stat-card"><span>Coût matière mois</span><strong id="coutMatiereMois">$0.00</strong></div><div class="stat-card"><span>Total carte</span><strong id="caCarte">$0.00</strong></div><div class="stat-card"><span>Total offert</span><strong id="caOffert">$0.00</strong></div><div class="stat-card"><span>Marge estimée</span><strong id="margeEstimee">$0.00</strong></div><div class="stat-card"><span>Bénéfice réel mois</span><strong id="beneficeReelMois">$0.00</strong></div><div class="stat-card"><span>Abonnements VIP</span><strong id="vipSubscriptionsMois">$0.00</strong></div><div class="stat-card"><span>Ventes VIP</span><strong id="vipSalesMois">$0.00</strong></div></div><div class="grid-2"><div class="card"><h3>📦 Top produits + rentabilité</h3><div id="topProductsProfit"></div></div><div class="card"><h3>👨‍🍳 Top employés</h3><div id="topEmployees"></div></div></div><div class="grid-2"><div class="card"><h3>⚠️ Recettes à surveiller</h3><div id="badRecipes"></div></div><div class="card"><h3>📜 Historique abonnements VIP</h3><div class="table-wrap"><table><thead><tr><th>Client</th><th>Niveau</th><th>Début</th><th>Fin</th><th>Tarif</th><th>Actif</th></tr></thead><tbody id="vipSubscriptionsRows"></tbody></table></div></div></div><div class="grid-2"><div class="card"><h3>📅 CA des semaines passées</h3><div id="weeklyHistory"></div></div><div class="card"><h3>🗓️ CA des mois passés</h3><div id="monthlyHistory"></div></div></div><div class="card"><h3>⭐ Historique ventes VIP</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Client VIP</th><th>Niveau</th><th>Service</th><th>Total</th><th>Paiement</th></tr></thead><tbody id="dashboardVipSalesRows"></tbody></table></div></div><div class="card"><h3>📈 Historique des ventes</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Employé</th><th>Produit</th><th>Qté</th><th>Remise</th><th>Total</th><th>Paiement</th><th>Actions</th></tr></thead><tbody id="salesRows"></tbody></table></div></div><div class="card"><h3>🚚 Historique achats grossiste</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Produit</th><th>Catégorie</th><th>Quantité</th><th>Unité</th><th>Coût unit.</th><th>Total</th><th>Actions</th></tr></thead><tbody id="dashboardPurchaseRows"></tbody></table></div></div></section>
+      <div id="stockView" class="view hidden"><div class="page-head"><h2>Stock</h2><p>Création des articles de base pour le grossiste et éventuellement pour la carte du restaurant.</p></div><div class="stock-layout"><div class="card"><h3>Ajouter un article</h3><form id="stockItemForm" class="form-grid stock-form"><div><label>Nom</label><input id="stockItemName" required /></div><div><label>Catégorie</label><select id="stockCategory" required></select></div><div><label>Unité</label><select id="stockItemUnit" required><option value="piece">Pièce</option><option value="bottle">Bouteille</option><option value="litre">Litre</option><option value="ml">ML</option><option value="cl">CL</option><option value="g">Grammes</option><option value="kg">Kilogrammes</option></select></div><div class="private-col"><label>Coût d'achat</label><div class="input-currency"><span>$</span><input id="stockItemUnitCost" type="number" min="0" step="0.01" placeholder="0.00" required /></div></div><div><label>Seuil alerte</label><input id="stockItemThreshold" type="number" min="0" step="0.01" required /></div><div><label>Disponible dans</label><select id="stockItemDestination" required><option value="supplier">Grossiste</option><option value="supplier_menu">Grossiste + Carte du Restaurant</option></select></div><div><label>Prix Bar (si carte)</label><div class="input-currency"><span>$</span><input id="stockItemPriceBar" type="number" min="0" step="0.01" placeholder="0.00" /></div></div><div><label>Quantité initiale</label><input id="stockItemInitialQty" type="number" min="0" step="0.01" required /></div><div class="full"><button type="submit">Ajouter</button></div></form></div><div class="card"><h3>Liste du stock</h3><div class="toolbar"><input id="stockSearch" placeholder="Rechercher..." /></div><div class="table-wrap"><table><thead><tr><th>Nom</th><th>Catégorie</th><th>Unité</th><th class="private-col">Coût unitaire</th><th>Stock</th><th>Seuil</th><th>Statut</th><th>Actions</th></tr></thead><tbody id="stockRows"></tbody></table></div></div></div></div>
+      <div id="achatsView" class="view hidden"><div class="page-head"><h2>Grossiste</h2><p>Achat rapide des articles pour le bar.</p></div><div class="grossiste-layout"><div class="grossiste-catalog card"><div class="caisse-screen-head"><div><h3>Catalogue grossiste</h3><p class="muted">Articles disponibles à l'achat</p></div></div><div id="supplierProducts" class="caisse-products-by-category"></div></div><aside class="grossiste-side"><div class="grossiste-cart card"><div class="grossiste-cart-head"><h3>🛒 Panier grossiste</h3><span id="supplierCartCount" class="tag">0 article</span></div><div id="supplierCartItems" class="grossiste-cart-items"></div><div class="grossiste-cart-footer"><div class="grossiste-total-box"><div class="grossiste-total-line"><span>Total</span><strong id="supplierCartTotal">$0.00</strong></div><div id="supplierCartCountBottom" class="muted">Validation rapide des achats</div></div><button id="validateSupplierCart" class="grossiste-validate-btn">✅ Valider achat grossiste</button></div></div></aside></div></div>
+      <div id="produitsView" class="view hidden"><div class="page-head"><h2>Carte du Restaurant</h2></div><div class="grid-2"><div class="card"><form id="productForm" class="form-grid"><div><label>Nom produit</label><input id="productName" required /></div><div><label>Catégorie</label><select id="productCategory" required></select></div><div><label>Prix Bar</label><input id="productPriceBar" type="number" min="0" step="0.01" required /></div><div><label>Prix coûtant</label><input id="productCostPrice" type="number" min="0" step="0.01" required /></div><div class="full"><button type="submit">Ajouter produit</button></div></form></div><div class="card"><div class="table-wrap"><table><thead><tr><th>Produit</th><th>Bar</th><th>Coûtant</th><th>Catégorie</th><th>Actif</th><th>Actions</th></tr></thead><tbody id="productRows"></tbody></table></div></div></div></div>
+      <div id="gestionView" class="view hidden"><div class="page-head"><h2>Gestion</h2><p>Utilisateurs, tarifs de base et catégories.</p></div><div class="gestion-tabs"><button type="button" class="gestion-tab-btn" onclick="showGestionTab('companiesTab', this)">Entreprises</button><button type="button" class="gestion-tab-btn active" onclick="showGestionTab('utilisateursTab', this)">Utilisateurs</button><button type="button" class="gestion-tab-btn" onclick="showGestionTab('tarifsTab', this)">Tarifs de base</button><button type="button" class="gestion-tab-btn" onclick="showGestionTab('categoriesTab', this)">Catégories</button></div><div id="companiesTab" class="gestion-tab hidden"><div class="grid-2"><div class="card"><h3>Ajouter entreprise</h3><div class="form-grid"><div><label>Nom entreprise</label><input id="companyName" placeholder="Nom entreprise" /></div><div><label>Contact</label><input id="companyContact" placeholder="Nom du contact" /></div><div><label>Téléphone</label><input id="companyPhone" placeholder="Téléphone" /></div><div><label>Email</label><input id="companyEmail" placeholder="Email" /></div><div><label>Adresse</label><input id="companyAddress" placeholder="Adresse" /></div><div><label>Plafond autorisé</label><input id="companyLimit" type="number" min="0" step="0.01" placeholder="0.00" /></div><div class="full"><button type="button" onclick="addCompany()">Ajouter entreprise</button></div></div></div><div class="card"><h3>Liste entreprises</h3><div class="table-wrap"><table><thead><tr><th>Nom</th><th>Contact</th><th>Téléphone</th><th>Email</th><th>Plafond</th><th>Actif</th><th>Actions</th></tr></thead><tbody id="companyRows"></tbody></table></div></div></div></div><div id="utilisateursTab" class="gestion-tab"><div class="grid-2"><div class="card"><form id="createUserForm" class="form-grid"><div><label>Nom complet</label><input id="newFullName" required /></div><div><label>Nom d'utilisateur</label><input id="newUsername" required /></div><div><label>Mot de passe provisoire</label><input id="newPasswordTmp" type="password" minlength="8" required /></div><div><label>Rôle</label><select id="newRole"><option value="employe">Employé</option><option value="employe_confirme">Employé confirmé</option><option value="codirecteur">Co-directeur</option><option value="directeur">Directeur</option><option value="lecture_seule">Lecture seule</option></select></div><div class="full"><button type="submit">Créer le compte</button></div></form></div><div class="card"><div class="table-wrap"><table><thead><tr><th>Nom</th><th>Username</th><th>Email</th><th>Rôle</th><th>Actif</th><th>Actions</th></tr></thead><tbody id="userRows"></tbody></table></div></div></div></div><div id="tarifsTab" class="gestion-tab hidden"><div class="grid-2"><div class="card"><form id="basePricesForm" class="form-grid"><div><label>Tarif Bar par défaut</label><input id="defaultPriceBar" type="number" min="0" step="0.01" required /></div><div class="full"><button type="submit">Enregistrer les tarifs de base</button></div></form></div><div class="card"><h3>Règle de fonctionnement</h3><p>Ces tarifs servent uniquement de valeurs par défaut lors de la création d’un nouveau produit.</p><p>Les produits déjà créés gardent leurs prix actuels.</p><p>Les champs Bar restent modifiables à la main dans la Carte du Restaurant.</p></div></div></div><div id="categoriesTab" class="gestion-tab hidden"><div class="grid-2"><div class="card"><h3>Ajouter catégorie</h3><div class="form-grid"><div class="full"><label>Nom catégorie</label><input id="categoryName" placeholder="Ex: Bière, Vin, Cocktail..." /></div><div class="full"><label>Types</label><div class="category-types-grid"><label><input type="checkbox" class="categoryTypeCheck" value="carte" checked /> Carte du Restaurant</label><label><input type="checkbox" class="categoryTypeCheck" value="stock" /> Stock</label><label><input type="checkbox" class="categoryTypeCheck" value="recette" /> Recettes</label><label><input type="checkbox" class="categoryTypeCheck" value="grossiste" /> Grossiste</label></div></div><div class="full"><button type="button" onclick="addCategory()">Ajouter catégorie</button></div></div></div><div class="card"><h3>Liste des catégories</h3><div class="table-wrap"><table><thead><tr><th>Nom</th><th>Type</th><th>Actif</th><th>Actions</th></tr></thead><tbody id="categoryRows"></tbody></table></div></div></div></div></div>
+      <div id="caisseView" class="view hidden"><div class="pos-container"><div class="pos-header"><div class="pos-left"><img src="/logo-three-hawker-boys.png" class="pos-logo"><div><h2>Three Hawker Boys</h2><span id="posUser"></span></div></div><div class="pos-center"><input id="posSearch" placeholder="🔎 Rechercher un produit..."></div><div class="pos-right"><select id="caisseService"><option value="Bar">Bar</option></select><span id="posTime"></span></div></div><div class="pos-body"><div class="pos-products"><div id="posCategories" class="pos-categories"></div><div id="caisseProducts" class="pos-grid"></div></div><div class="pos-cart"><div class="pos-cart-header">🧾 Panier<span id="caisseCartCount">0</span></div><div id="caisseCartItems" class="pos-cart-items"></div><div class="card menu-builder-card" id="menuBuilderCard"><h3>🍀 Menu Leprechaun</h3><div class="form-grid"><div><label>Planche / recette</label><select id="menuRecipe"></select></div><div><label>Boisson</label><select id="menuDrink"></select></div><div><label>Supplément dessert</label><select id="menuExtra"><option value="">Aucun supplément</option><option value="Cookie">Cookie (+$30)</option><option value="Glace Orangeo'Tang">Glace Orangeo'Tang (+$30)</option></select></div><div><label>Total menu</label><input id="menuLeprechaunTotal" type="text" value="$300.00" readonly></div></div><div class="menu-preview" id="menuPreview"><div>🍽 Planche : <span id="previewRecipe">-</span></div><div>🥃 Boisson : <span id="previewDrink">-</span></div><div>🍰 Dessert : <span id="previewExtra">Aucun</span></div></div><div class="full"><button type="button" onclick="addLeprechaunMenuToCart()">🍀 Ajouter Menu Leprechaun</button></div></div><div class="company-contract-box hidden" id="companyContractBox"><label>Entreprise</label><select id="companySelect"><option value="">Choisir une entreprise</option></select><button type="button" class="btn-company" onclick="validateCart('company')">✅ Valider contrat entreprise</button></div><div class="card concours-code-card"><h3>🎁 Code concours</h3><div class="form-grid"><div><label>Code gagnant</label><input id="contestRewardCode" placeholder="THB-XXXXXX" /></div><div class="full"><button type="button" class="secondary" onclick="applyContestRewardCode()">Appliquer le code</button></div><div class="full muted" id="contestRewardInfo">Aucun code appliqué</div></div></div><div class="pos-discount"><select id="globalDiscount"><option value="0">0%</option><option value="5">5%</option><option value="10">10%</option><option value="20">20%</option><option value="50">50%</option></select></div><div class="pos-total"><span>Total</span><strong id="caisseTotal">$0.00</strong></div><div class="pos-actions"><button id="payCarte" class="btn-pay">💳 Carte</button><button id="payCompany" class="btn-company">🏢 Contrat entreprise</button><button id="payOffert" class="btn-offer">🎁 Offert</button></div></div></div></div></div>
+      <div id="annuaireView" class="view hidden"><div class="page-head"><h2>Annuaire</h2><p>Visible par tous. Partie privée visible seulement direction.</p></div><div class="grid-2"><div class="card" id="directoryManageWrap"><form id="directoryForm" class="form-grid"><div><label>Nom</label><input id="dirLastName" required /></div><div><label>Prénom</label><input id="dirFirstName" required /></div><div><label>Téléphone</label><input id="dirPhone" required /></div><div class="full"><button type="submit">Ajouter à l'annuaire</button></div></form></div><div class="card" id="warningManageWrap"><form id="warningForm" class="form-grid"><div><label>Contact</label><select id="warningDirectoryId"></select></div><div><label>Niveau</label><select id="warningLevel"><option>Info</option><option>Mineur</option><option>Majeur</option></select></div><div class="full"><label>Note interne</label><input id="warningNote" /></div><div class="full"><button type="submit">Ajouter avertissement</button></div></form></div></div><div class="card"><div class="toolbar"><input id="directorySearch" placeholder="Rechercher annuaire..." /></div><div class="table-wrap"><table><thead><tr><th>Nom</th><th>Prénom</th><th>Téléphone</th><th class="private-col">Avertissements</th><th class="private-col">Dernière note</th><th>Actions</th></tr></thead><tbody id="directoryRows"></tbody></table></div></div></div>
+      <div id="contractsView" class="view hidden"><div class="page-head"><h2>🏢 Contrats entreprises</h2><p>Suivi des ventes en attente et génération des factures.</p></div><div class="card"><h3>Suivi hebdomadaire</h3><div class="table-wrap"><table><thead><tr><th>Entreprise</th><th>Total en attente</th><th>Statut Paiement</th><th>Actions</th></tr></thead><tbody id="contractsRows"></tbody></table></div></div><div class="card"><h3>Historique des ventes entreprise</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Entreprise</th><th>Produit</th><th>Qté</th><th>Total</th><th>Statut</th></tr></thead><tbody id="contractSalesRows"></tbody></table></div></div></div>
+      <!-- PARTIE IMPORTANTE À REMPLACER À PARTIR DE profilView -->
+
+<div id="profilView" class="view hidden">
+  <div class="page-head">
+    <h2>Mon profil</h2>
+  </div>
+
+  <div class="card">
+    <div id="profileBox"></div>
+    <hr />
+
+    <form id="profilePasswordForm" class="form-grid simple">
+      <div>
+        <label>Nouveau mot de passe</label>
+        <input id="profileNewPassword" type="password" minlength="8" required />
+      </div>
+      <div>
+        <label>Confirmation</label>
+        <input id="profileConfirmPassword" type="password" minlength="8" required />
+      </div>
+      <button type="submit">Modifier mon mot de passe</button>
+    </form>
+  </div>
+</div>
+
+
+
+<!-- ===================== DEPENSES ===================== -->
+
+<div id="expensesView" class="view hidden">
+
+  <div class="page-head">
+    <h2>💸 Dépenses</h2>
+    <p>Suivi des charges et investissements</p>
+  </div>
+
+  <div class="card">
+    <h3>Ajouter une dépense</h3>
+
+    <div class="form-grid">
+      <input type="date" id="expDate">
+      <input type="text" id="expTitle" placeholder="Libellé">
+
+      <select id="expCategory">
+        <option>Salaire</option>
+        <option>Véhicule</option>
+        <option>Loyer</option>
+        <option>Facture</option>
+        <option>Matériel</option>
+        <option>Divers</option>
+      </select>
+
+      <input type="number" id="expAmount" placeholder="Montant">
+
+      <button class="full" onclick="addExpense()">Ajouter</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Historique</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Libellé</th>
+            <th>Catégorie</th>
+            <th>Type</th>
+            <th>Montant</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="expensesRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== VIP ===================== -->
+
+<div id="vipView" class="view hidden">
+  <div class="page-head">
+    <h2>⭐ VIP</h2>
+    <p>Gestion des abonnements VIP du bar.</p>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Ajouter un client VIP</h3>
+      <form id="vipClientForm" class="form-grid">
+        <div>
+          <label>Nom complet</label>
+          <input id="vipFullName" required />
+        </div>
+
+        <div>
+          <label>Téléphone</label>
+          <input id="vipPhone" />
+        </div>
+
+        <div>
+          <label>Niveau VIP</label>
+          <select id="vipLevel" required>
+            <option value="VIP">Carrée VIP</option>
+            <option value="Bronze">Bronze</option>
+            <option value="Argent">Argent</option>
+            <option value="Gold">Gold</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Début</label>
+          <input id="vipStartDate" type="date" />
+        </div>
+
+        <div>
+          <label>Fin</label>
+          <input id="vipEndDate" type="date" />
+        </div>
+
+        <div>
+          <label>Tarif semaine</label>
+          <input id="vipWeeklyPrice" type="text" readonly />
+        </div>
+
+        <div>
+          <label>Remise</label>
+          <input id="vipDiscountPercent" type="text" readonly />
+        </div>
+
+        <div class="full">
+          <button type="submit">Ajouter client VIP</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>Liste des VIP</h3>
+      <div class="toolbar">
+        <input id="vipSearch" placeholder="Rechercher un VIP..." />
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Téléphone</th>
+              <th>Niveau</th>
+              <th>Remise</th>
+              <th>Tarif/semaine</th>
+              <th>Début</th>
+              <th>Fin</th>
+              <th>Actif</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="vipRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Historique VIP</h3>
+    <div class="toolbar">
+      <input id="vipHistorySearch" placeholder="Rechercher dans l'historique VIP..." />
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Client VIP</th>
+            <th>Niveau</th>
+            <th>Service</th>
+            <th>Total</th>
+            <th>Paiement</th>
+          </tr>
+        </thead>
+        <tbody id="vipHistoryRows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+    </section>
+  </main>
+</div>
+</body>
+</html>
