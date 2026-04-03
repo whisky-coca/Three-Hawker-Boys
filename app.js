@@ -2716,8 +2716,9 @@ function setCartItemDiscount(itemId, percent) {
   const item = caisseCart.find(i => String(i.id) === String(itemId));
   if (!item) return;
 
-  item.discountPercent = Number(percent || 0);
-  item.isOffered = item.discountPercent === 100;
+  const value = Number(percent);
+  item.discountPercent = Number.isFinite(value) ? value : 0;
+  item.isOffered = item.discountPercent >= 100;
 
   renderCart();
 }
