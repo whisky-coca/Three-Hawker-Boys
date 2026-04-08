@@ -101,30 +101,38 @@ const usernameToEmail = (u) => {
   if (value.includes('@')) return value;
   return `${value}@${cfg.USERNAME_DOMAIN}`;
 };
+
 const isDirectionRole = r => r === 'directeur' || r === 'codirecteur';
 const isDirector = r => r === 'directeur';
 
-const canAccessDashboard = r => ['directeur', 'codirecteur'].includes(r);
-const canAccessCaisse = r => ['directeur', 'codirecteur', 'employe_confirme', 'employe'].includes(r);
-const canAccessVip = r => ['directeur', 'codirecteur', 'employe_confirme'].includes(r);
+const canAccessDashboard = r => ['directeur', 'codirecteur', 'responsable_bar'].includes(r);
+const canAccessCaisse = r => ['directeur', 'codirecteur', 'responsable_bar', 'experimente', 'employe', 'stagiaire'].includes(r);
+
+const canAccessVip = r => ['directeur', 'codirecteur', 'responsable_bar', 'experimente'].includes(r);
 const canDeleteVip = r => ['directeur', 'codirecteur'].includes(r);
 
-const canAccessStock = r => ['directeur', 'codirecteur', 'employe_confirme', 'employe'].includes(r);
+const canAccessStock = r => ['directeur', 'codirecteur', 'responsable_bar', 'experimente', 'employe'].includes(r);
 const canSeeStockCosts = r => ['directeur', 'codirecteur'].includes(r);
 
-const canAccessRecipes = r => ['directeur', 'codirecteur'].includes(r);
+const canAccessRecipes = r => ['directeur', 'codirecteur', 'responsable_bar', 'experimente'].includes(r);
+const canCreateRecipes = r => ['directeur', 'codirecteur', 'responsable_bar', 'experimente'].includes(r);
+
 const canAccessProductsManage = r => ['directeur', 'codirecteur'].includes(r);
-const canReadProductsOnly = r => ['employe_confirme', 'employe', 'lecture_seule'].includes(r);
+const canReadProductsOnly = r => ['responsable_bar', 'experimente', 'employe', 'stagiaire', 'lecture_seule'].includes(r);
 
 const canAccessPurchases = r => ['directeur', 'codirecteur'].includes(r);
-const canAccessGestion = r => ['directeur', 'codirecteur'].includes(r);
-const canAccessDirectoryManage = r => ['directeur', 'codirecteur'].includes(r);
-const canAccessDirectoryRead = r => ['directeur', 'codirecteur', 'employe_confirme', 'employe'].includes(r);
+const canAccessGestion = r => ['directeur', 'codirecteur', 'responsable_bar'].includes(r);
+const canAccessContracts = r => ['directeur', 'codirecteur', 'responsable_bar'].includes(r);
 
-const canDiscount = r => ['directeur', 'codirecteur', 'employe_confirme'].includes(r);
+const canAccessDirectoryManage = r => ['directeur', 'codirecteur', 'responsable_bar'].includes(r);
+const canAccessDirectoryRead = r => ['directeur', 'codirecteur', 'responsable_bar', 'experimente', 'employe'].includes(r);
+
+const canDiscount = r => ['directeur', 'codirecteur', 'responsable_bar', 'experimente'].includes(r);
 const canOfferCart = r => ['directeur', 'codirecteur'].includes(r);
+
 const isReadOnlyRole = r => r === 'lecture_seule';
 const monthKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
 const vipDiscountByLevel = level => {
   if (level === 'Or') return 20;
   if (level === 'Argent') return 10;
@@ -1220,6 +1228,45 @@ function renderDashboard() {
   const vipClients = cache.vipClients || [];
   const vipHistory = cache.vipHistory || [];
 
+  const getSaleDisplayName = (sale) => {
+    if (sale?.product_name && String(sale.product_name).trim()) return String(sale.product_name).trim();
+    if (sale?.linked_product_name && String(sale.linked_product_name).trim()) return String(sale.linked_product_name).trim();
+    if (sale?.menu_recipe_name && String(sale.menu_recipe_name).trim()) return String(sale.menu_recipe_name).trim();
+    if (sale?.menu_drink_name && String(sale.menu_drink_name).trim()) return String(sale.menu_drink_name).trim();
+    if (sale?.menu_extra_name && String(sale.menu_extra_name).trim()) return String(sale.menu_extra_name).trim();
+    if (sale?.sale_kind === 'menu') return 'Menu Leprechaun';
+    return 'Produit inconnu';
+  };
+
+  const findProductForSale = (sale) => {
+    const directName = String(sale?.product_name || '').trim();
+    const linkedName = String(sale?.linked_product_name || '').trim();
+
+    let product = null;
+
+    if (directName) {
+      product = (cache.produits || []).find(p => String(p.name || '').trim() === directName);
+      if (product) return product;
+    }
+
+    if (linkedName) {
+      product = (cache.produits || []).find(p => String(p.name || '').trim() === linkedName);
+      if (product) return product;
+    }
+
+    if (sale?.product_id) {
+      product = (cache.produits || []).find(p => String(p.id || '') === String(sale.product_id));
+      if (product) return product;
+    }
+
+    if (sale?.menu_recipe_id) {
+      product = (cache.produits || []).find(p => String(p.recipe_id || '') === String(sale.menu_recipe_id));
+      if (product) return product;
+    }
+
+    return null;
+  };
+
   const isSaleCountedInCA = (sale) => {
     if (sale.payment_method === 'company') {
       return sale.payment_status === 'paye';
@@ -1252,7 +1299,7 @@ function renderDashboard() {
   const coutMatiere = countedSales
     .filter(s => String(s.sale_date).startsWith(month))
     .reduce((sum, sale) => {
-      const product = cache.produits.find(p => p.name === sale.product_name);
+      const product = findProductForSale(sale);
       const cost = Number(product?.cost_price || 0) * Number(sale.quantity || 0);
       return sum + cost;
     }, 0);
@@ -1260,7 +1307,7 @@ function renderDashboard() {
   const marge = countedSales
     .filter(s => String(s.sale_date).startsWith(month))
     .reduce((sum, sale) => {
-      const product = cache.produits.find(p => p.name === sale.product_name);
+      const product = findProductForSale(sale);
       const cost = Number(product?.cost_price || 0) * Number(sale.quantity || 0);
       const revenue = Number(sale.total_after_discount || sale.total_amount || 0);
       return sum + (revenue - cost);
@@ -1332,15 +1379,16 @@ function renderDashboard() {
 
   countedSales.forEach(v => {
     const revenue = Number(v.total_after_discount || v.total_amount || 0);
+    const displayName = getSaleDisplayName(v);
 
-    prod[v.product_name] = (prod[v.product_name] || 0) + revenue;
-    emp[v.full_name] = (emp[v.full_name] || 0) + revenue;
+    prod[displayName] = (prod[displayName] || 0) + revenue;
+    emp[v.full_name || 'Employé inconnu'] = (emp[v.full_name || 'Employé inconnu'] || 0) + revenue;
 
-    const product = cache.produits.find(p => p.name === v.product_name);
+    const product = findProductForSale(v);
     const cost = Number(product?.cost_price || 0) * Number(v.quantity || 0);
     const profit = revenue - cost;
 
-    profitByProduct[v.product_name] = (profitByProduct[v.product_name] || 0) + profit;
+    profitByProduct[displayName] = (profitByProduct[displayName] || 0) + profit;
   });
 
   if (els.topProductsProfit) {
@@ -2731,6 +2779,21 @@ function toggleCartItemOffered(itemId) {
 }
 window.toggleCartItemOffered = toggleCartItemOffered;
 
+function getContestFixedDiscountAmount() {
+  const raw = activeContestReward?.fixed_discount_amount;
+
+  if (typeof raw === 'number') {
+    return Number.isFinite(raw) ? raw : 0;
+  }
+
+  const cleaned = String(raw || '')
+    .replace(',', '.')
+    .replace(/[^0-9.-]/g, '');
+
+  const value = Number(cleaned);
+  return Number.isFinite(value) ? value : 0;
+}
+
 function renderCart() {
   const container = document.getElementById('caisseCartItems');
   const totalEl = document.getElementById('caisseTotal');
@@ -2766,7 +2829,7 @@ function renderCart() {
     const isMenu = !!item.isMenu;
     const price = isMenu
       ? Number(item.fixedPrice || 0)
-      : pickServicePrice(item.product, service);
+      : Number(pickServicePrice(item.product, service) || 0);
 
     const qty = Number(item.qty || 0);
     const base = price * qty;
@@ -2806,7 +2869,7 @@ function renderCart() {
                 <option value="0" ${lineDiscountPercent === 0 ? 'selected' : ''}>Remise 0%</option>
                 <option value="5" ${lineDiscountPercent === 5 ? 'selected' : ''}>Remise 5%</option>
                 <option value="10" ${lineDiscountPercent === 10 ? 'selected' : ''}>Remise 10%</option>
-                <option value="15" ${lineDiscountPercent === 10 ? 'selected' : ''}>Remise 15%</option>
+                <option value="15" ${lineDiscountPercent === 15 ? 'selected' : ''}>Remise 15%</option>
                 <option value="20" ${lineDiscountPercent === 20 ? 'selected' : ''}>Remise 20%</option>
                 <option value="30" ${lineDiscountPercent === 30 ? 'selected' : ''}>Remise 30%</option>
                 <option value="40" ${lineDiscountPercent === 40 ? 'selected' : ''}>Remise 40%</option>
@@ -2845,29 +2908,42 @@ function renderCart() {
   if (isGlobalOffered) {
     finalTotal = 0;
   } else {
-    finalTotal = Math.max(0, subtotalAfterLineDiscounts - (subtotalAfterLineDiscounts * (globalDiscount / 100)));
+    finalTotal = Math.max(
+      0,
+      subtotalAfterLineDiscounts - (subtotalAfterLineDiscounts * (globalDiscount / 100))
+    );
   }
 
   if (activeContestReward) {
     if (Number(activeContestReward.discount_percent || 0) > 0) {
-      finalTotal = Math.max(0, finalTotal - (finalTotal * (Number(activeContestReward.discount_percent || 0) / 100)));
+      finalTotal = Math.max(
+        0,
+        finalTotal - (finalTotal * (Number(activeContestReward.discount_percent || 0) / 100))
+      );
     }
 
-    if (Number(activeContestReward.fixed_discount_amount || 0) > 0) {
-      finalTotal = Math.max(0, finalTotal - Number(activeContestReward.fixed_discount_amount || 0));
+    const fixedDiscount = getContestFixedDiscountAmount();
+    if (fixedDiscount > 0) {
+      finalTotal = Math.max(0, finalTotal - fixedDiscount);
     }
 
     if (activeContestReward.free_menu === true) {
       const firstMenu = caisseCart.find(i => i?.isMenu === true);
       if (firstMenu) {
-        finalTotal = Math.max(0, finalTotal - (Number(firstMenu.fixedPrice || 0) * Number(firstMenu.qty || 0)));
+        finalTotal = Math.max(
+          0,
+          finalTotal - (Number(firstMenu.fixedPrice || 0) * Number(firstMenu.qty || 0))
+        );
       }
     }
 
     if (activeContestReward.free_menu_dessert === true) {
       const firstMenuDessert = caisseCart.find(i => i?.isMenu === true);
       if (firstMenuDessert) {
-        finalTotal = Math.max(0, finalTotal - (Number(firstMenuDessert.fixedPrice || 0) * Number(firstMenuDessert.qty || 0)));
+        finalTotal = Math.max(
+          0,
+          finalTotal - (Number(firstMenuDessert.fixedPrice || 0) * Number(firstMenuDessert.qty || 0))
+        );
       }
     }
   }
@@ -2885,9 +2961,16 @@ function renderCart() {
 
   const info = document.getElementById('contestRewardInfo');
   if (info) {
-    info.textContent = activeContestReward
+    let text = activeContestReward
       ? `${activeContestReward.message} — appliqué`
       : 'Aucun code appliqué';
+
+    const fixedDiscount = getContestFixedDiscountAmount();
+    if (activeContestReward && fixedDiscount > 0) {
+      text += ` • -${euro(fixedDiscount)}`;
+    }
+
+    info.textContent = text;
   }
 }
 
@@ -2991,6 +3074,23 @@ async function validateCart(payment) {
   let selectedCompany = null;
   let firstSaleId = null;
 
+  const parseContestFixedDiscount = () => {
+    const raw = activeContestReward?.fixed_discount_amount;
+
+    if (typeof raw === 'number') {
+      return Number.isFinite(raw) ? raw : 0;
+    }
+
+    const cleaned = String(raw || '')
+      .replace(',', '.')
+      .replace(/[^0-9.-]/g, '');
+
+    const value = Number(cleaned);
+    return Number.isFinite(value) ? value : 0;
+  };
+
+  let remainingContestFixedDiscount = parseContestFixedDiscount();
+
   if (payment === 'company') {
     if (!companySelect) return toast('Select entreprise introuvable.');
     if (!companySelect.value) return toast('Choisis une entreprise.');
@@ -3042,16 +3142,22 @@ async function validateCart(payment) {
 
       if (activeContestReward) {
         if (Number(activeContestReward.discount_percent || 0) > 0) {
-          final = Math.max(0, final - (final * (Number(activeContestReward.discount_percent || 0) / 100)));
-        }
-
-        if (Number(activeContestReward.fixed_discount_amount || 0) > 0) {
-          final = Math.max(0, final - Number(activeContestReward.fixed_discount_amount || 0));
+          final = Math.max(
+            0,
+            final - (final * (Number(activeContestReward.discount_percent || 0) / 100))
+          );
         }
 
         if (activeContestReward.free_menu === true || activeContestReward.free_menu_dessert === true) {
           final = 0;
         }
+      }
+
+      let contestFixedApplied = 0;
+      if (remainingContestFixedDiscount > 0 && final > 0) {
+        contestFixedApplied = Math.min(final, remainingContestFixedDiscount);
+        final = Math.max(0, final - contestFixedApplied);
+        remainingContestFixedDiscount -= contestFixedApplied;
       }
 
       let menuProduct;
@@ -3073,7 +3179,7 @@ async function validateCart(payment) {
         total_amount: base,
         total_before_discount: base,
         discount_percent: lineDiscountPercent,
-        discount_amount: lineDiscountAmount,
+        discount_amount: lineDiscountAmount + contestFixedApplied,
         total_after_discount: final,
         company_contract_id: selectedCompany?.id || null,
         company_contract_name: selectedCompany?.company_name || '',
@@ -3095,7 +3201,8 @@ async function validateCart(payment) {
 
         contest_reward_code: activeContestReward?.code || null,
         contest_reward_type: activeContestReward?.reward_type || null,
-        contest_reward_value: activeContestReward?.reward_value || null
+        contest_reward_value: activeContestReward?.reward_value || null,
+        contest_reward_label: activeContestReward?.message || null
       };
 
       const { data: insertedSale, error } = await sb
@@ -3171,12 +3278,18 @@ async function validateCart(payment) {
 
     if (activeContestReward) {
       if (Number(activeContestReward.discount_percent || 0) > 0) {
-        final = Math.max(0, final - (final * (Number(activeContestReward.discount_percent || 0) / 100)));
+        final = Math.max(
+          0,
+          final - (final * (Number(activeContestReward.discount_percent || 0) / 100))
+        );
       }
+    }
 
-      if (Number(activeContestReward.fixed_discount_amount || 0) > 0) {
-        final = Math.max(0, final - Number(activeContestReward.fixed_discount_amount || 0));
-      }
+    let contestFixedApplied = 0;
+    if (remainingContestFixedDiscount > 0 && final > 0) {
+      contestFixedApplied = Math.min(final, remainingContestFixedDiscount);
+      final = Math.max(0, final - contestFixedApplied);
+      remainingContestFixedDiscount -= contestFixedApplied;
     }
 
     const payload = {
@@ -3190,7 +3303,7 @@ async function validateCart(payment) {
       total_amount: base,
       total_before_discount: base,
       discount_percent: lineDiscountPercent,
-      discount_amount: lineDiscountAmount,
+      discount_amount: lineDiscountAmount + contestFixedApplied,
       total_after_discount: final,
       company_contract_id: selectedCompany?.id || null,
       company_contract_name: selectedCompany?.company_name || '',
@@ -3204,7 +3317,7 @@ async function validateCart(payment) {
       contest_reward_code: activeContestReward?.code || null,
       contest_reward_type: activeContestReward?.reward_type || null,
       contest_reward_value: activeContestReward?.reward_value || null,
-      contest_reward_label: activeContestReward?.message || null,
+      contest_reward_label: activeContestReward?.message || null
     };
 
     const { data: insertedSale, error } = await sb
